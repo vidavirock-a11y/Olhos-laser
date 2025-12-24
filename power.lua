@@ -1,4 +1,4 @@
--- Carregar Objetos com Mãos - Delta Executor Mobile
+-- Carregar Objetos em Natural Disaster Survival - Delta Executor Mobile
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -8,9 +8,9 @@ local character = player.Character or player.CharacterAdded:Wait()
 local root = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
-local RANGE = 10  -- Distância pra pegar objetos
-local HOLD_OFFSET = Vector3.new(0, 0, -2)  -- Posição na frente do peito
-local MAX_WEIGHT = 500  -- Peso máximo do objeto (ajuste se travar)
+local RANGE = 8  -- Distância menor pra objetos do mapa
+local HOLD_OFFSET = Vector3.new(0, 0, -1.5)  -- Ajuste pra frente do peito
+local MAX_WEIGHT = 300  -- Peso menor pra objetos do jogo
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "GrabGui"
@@ -37,7 +37,14 @@ local function grabObject()
         if weld then weld:Destroy() end
         if grabbedPart then
             grabbedPart.CanCollide = true
-            grabbedPart.Anchored = false  -- Deixa cair
+            grabbedPart.Anchored = false
+            if grabbedPart.Parent:IsA("Model") then
+                for _, part in pairs(grabbedPart.Parent:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
         end
         holding = false
         grabbedPart = nil
@@ -56,7 +63,7 @@ local function grabObject()
     if result and result.Instance then
         local part = result.Instance
         local model = part.Parent
-        if model:IsA("Model") or part:IsA("BasePart") then
+        if (part:IsA("BasePart") or model:IsA("Model")) and not part.Anchored then
             local mass = 0
             if part:IsA("BasePart") then
                 mass = part:GetMass()
@@ -69,6 +76,11 @@ local function grabObject()
                 part.CanCollide = false
                 if model.PrimaryPart then
                     model.PrimaryPart.CanCollide = false
+                    for _, p in pairs(model:GetDescendants()) do
+                        if p:IsA("BasePart") then
+                            p.CanCollide = false
+                        end
+                    end
                 end
                 
                 -- Cria weld pra segurar
@@ -80,9 +92,9 @@ local function grabObject()
                 
                 grabbedPart = part
                 holding = true
-                print("Objeto pego! Solte com outro toque.")
+                print("Objeto pego em Natural Disaster! Solte com outro toque.")
             else
-                print("Objeto muito pesado!")
+                print("Objeto muito pesado pra carregar!")
             end
         end
     end
@@ -106,4 +118,4 @@ btn.MouseButton1Up:Connect(function()
     TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(0, 100, 0)}):Play()
 end)
 
-print("Carregar Objetos ativado! Toque PEGAR OBJETO pra segurar/soltar.")
+print("Carregar Objetos em Natural Disaster ativado! Toque PEGAR OBJETO pra segurar/soltar.")               
