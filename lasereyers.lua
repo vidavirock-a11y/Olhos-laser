@@ -1,33 +1,33 @@
--- Laser Eyes Mobile com dano - Delta Executor
+-- Laser Eyes Mobile com FLING - Delta Executor
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local head = character:WaitForChild("Head")
 
-local RANGE = 300
+local RANGE = 500          -- Distância maior pra fling longe
 local COLOR = Color3.fromRGB(255, 0, 0)
-local THICKNESS = 0.5
+local THICKNESS = 0.6
 local DURATION = 0.2
+local FLING_POWER = 5000   -- Quanto maior, mais voa (pode colocar 10000 pra mandar pro espaço)
 
 local sound = Instance.new("Sound")
 sound.SoundId = "rbxassetid://142945938"
-sound.Volume = 0.8
+sound.Volume = 1
 sound.Parent = head
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "LaserGui"
+gui.Name = "LaserFlingGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0, 120, 0, 120)
+btn.Size = UDim2.new(0, 130, 0, 130)
 btn.Position = UDim2.new(0.8, 0, 0.7, 0)
-btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-btn.Text = "LASER"
+btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+btn.Text = "FLING\nLASER"
 btn.TextColor3 = Color3.new(1,1,1)
 btn.TextScaled = true
 btn.Font = Enum.Font.GothamBlack
@@ -51,6 +51,7 @@ local function shoot()
     local result = workspace:Raycast(origin, direction, params)
     local endPos = result and result.Position or (origin + direction)
     
+    -- Feixe visual
     local beam = Instance.new("Part")
     beam.Anchored = true
     beam.CanCollide = false
@@ -60,22 +61,25 @@ local function shoot()
     beam.Size = Vector3.new(THICKNESS, THICKNESS, (endPos - origin).Magnitude)
     beam.CFrame = CFrame.new(origin, endPos) * CFrame.new(0, 0, -beam.Size.Z/2)
     beam.Parent = workspace
-    
     Debris:AddItem(beam, DURATION)
     
+    -- FLING se acertar jogador
     if result then
-        local hit = result.Instance
-        local humanoid = hit.Parent:FindFirstChild("Humanoid") or hit.Parent.Parent:FindFirstChild("Humanoid")
-        if humanoid and humanoid.Parent ~= character then
-            -- Tenta um RemoteEvent genérico (funciona só em jogos vulneráveis)
-            local remote = ReplicatedStorage:FindFirstChild("DamageEvent") or ReplicatedStorage:FindFirstChild("Hit")
-            if remote then
-                remote:FireServer(humanoid, 100) -- Tenta causar 100 de dano
+        local hitPart = result.Instance
+        local targetChar = hitPart.Parent
+        local targetHumanoid = targetChar:FindFirstChild("Humanoid")
+        
+        if targetHumanoid and targetChar ~= character then
+            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart") or targetChar:FindFirstChild("Torso")
+            if targetRoot then
+                -- Dá o fling
+                targetRoot.Velocity = direction.Unit * FLING_POWER + Vector3.new(0, FLING_POWER / 2, 0)  -- pra cima + pra frente
+                targetRoot.AngularVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100)) * 20
             end
         end
     end
     
-    task.wait(0.35)
+    task.wait(0.3)
     firing = false
 end
 
@@ -87,11 +91,12 @@ player.CharacterAdded:Connect(function(newChar)
     sound.Parent = head
 end)
 
+-- Animação do botão
 btn.MouseButton1Down:Connect(function()
-    TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}):Play()
+    TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}):Play()
 end)
 btn.MouseButton1Up:Connect(function()
-    TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(200, 0, 0)}):Play()
+    TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(180, 0, 0)}):Play()
 end)
 
-print("Laser Eyes com dano carregado! Toque no botão vermelho.")
+print("Laser Fling carregado! Toque no botão pra arremessar os outros!")
