@@ -1,63 +1,72 @@
--- Script de Olho Laser do Capitão Pátria com Botão Móvel - Para Delta Executor
--- Botão menor e arrastável na tela
-
+-- Laser Eyes Mobile com Botão Menor e Móvel - Delta Executor
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
+local Debris = game:GetService("Debris")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui
-screenGui.Name = "HomelanderLaserGui"
+local character = player.Character or player.CharacterAdded:Wait()
+local head = character:WaitForChild("Head")
 
-local laserActive = false
-local beams = {}
-local sound = nil
+local RANGE = 300
+local COLOR = Color3.fromRGB(255, 0, 0)
+local THICKNESS = 0.5
+local DURATION = 0.2
 
--- Configurações
-local LASER_COLOR = Color3.fromRGB(255, 0, 0)  -- Vermelho intenso
-local LASER_WIDTH = 0.8
-local LASER_DAMAGE = 100  -- Mata instantaneamente
-local LASER_RANGE = 500
-local LASER_SOUND_ID = "rbxassetid://1835343205"  -- Som de laser
+local sound = Instance.new("Sound")
+sound.SoundId = "rbxassetid://142945938"
+sound.Volume = 0.8
+sound.Parent = head
 
--- Configurações do botão
-local BUTTON_SIZE = UDim2.new(0, 50, 0, 50)  -- Tamanho menor (50x50 pixels)
-local BUTTON_COLOR = Color3.fromRGB(255, 50, 50)  -- Vermelho com transparência
-local BUTTON_TEXT = "🔥"
+local gui = Instance.new("ScreenGui")
+gui.Name = "LaserGui"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
--- Criar botão na tela
-local button = Instance.new("TextButton")
-button.Size = BUTTON_SIZE
-button.Position = UDim2.new(0.5, -25, 0.8, -25)  -- Centro-inferior inicial
-button.BackgroundColor3 = BUTTON_COLOR
-button.BackgroundTransparency = 0.3
-button.Text = BUTTON_TEXT
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.TextScaled = true
-button.Parent = screenGui
-button.RoundCornerRadius = UDim.new(0, 10)  -- Bordas arredondadas
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0, 80, 0, 80)  -- Botão menor (80x80 pixels)
+btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+btn.Text = "LASER"
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.TextScaled = true
+btn.Font = Enum.Font.GothamBlack
+btn.Parent = gui
 
--- Função para tornar o botão arrastável
 local dragging = false
-local dragStart = nil
-local startPos = nil
+local dragInput, dragStart, startPos
 
-button.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+local function updateDrag(input)
+    local delta = input.Position - dragStart
+    btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+btn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = button.Position
+        startPos = btn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        button.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset
+btn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and dragging then
+        dragInput = input
+        UserInputService.TouchMoved:Connect(updateDrag)
+    end
+end)
+
+local firing = false
+
+local function shoot()
+    if firing then return end
+    firing = true
+    
+    sound:Play()
+    
+    local origin = head.Position + Vector3.new(0, 0.5,
