@@ -1,7 +1,8 @@
--- Laser Eyes Mobile - Funciona no Delta (Celular)
+-- Laser Eyes Mobile com dano - Delta Executor
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -62,6 +63,18 @@ local function shoot()
     
     Debris:AddItem(beam, DURATION)
     
+    if result then
+        local hit = result.Instance
+        local humanoid = hit.Parent:FindFirstChild("Humanoid") or hit.Parent.Parent:FindFirstChild("Humanoid")
+        if humanoid and humanoid.Parent ~= character then
+            -- Tenta um RemoteEvent genérico (funciona só em jogos vulneráveis)
+            local remote = ReplicatedStorage:FindFirstChild("DamageEvent") or ReplicatedStorage:FindFirstChild("Hit")
+            if remote then
+                remote:FireServer(humanoid, 100) -- Tenta causar 100 de dano
+            end
+        end
+    end
+    
     task.wait(0.35)
     firing = false
 end
@@ -81,4 +94,4 @@ btn.MouseButton1Up:Connect(function()
     TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(200, 0, 0)}):Play()
 end)
 
-print("Laser Eyes carregado! Toque no botão vermelho na tela.")
+print("Laser Eyes com dano carregado! Toque no botão vermelho.")
